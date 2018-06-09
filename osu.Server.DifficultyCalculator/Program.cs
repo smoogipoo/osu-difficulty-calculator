@@ -95,7 +95,7 @@ namespace osu.Server.DifficultyCalculator
 
             using (var conn = database.GetConnection())
             {
-                foreach (var mod in ruleset.GetModsFor(ModType.DifficultyCalculation))
+                foreach (var mod in ruleset.CreateDifficultyAdjustmentModCombinations())
                 {
                     var legacyMod = toLegacyMod(mod);
 

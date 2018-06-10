@@ -44,6 +44,24 @@ namespace osu.Server.DifficultyCalculator
 
             database = new Database(AppSettings.ConnectionString);
 
+            console.WriteLine("Waiting for database connection...");
+            while (true)
+            {
+                try
+                {
+                    using (var conn = database.GetConnection())
+                    {
+                        break;
+                    }
+                }
+                catch
+                {
+                    Thread.Sleep(1000);
+                }
+            }
+
+            console.WriteLine("Database connected.");
+
             var tasks = new List<Task>();
 
             using (var conn = database.GetConnection())

@@ -95,6 +95,27 @@ namespace osu.Server.DifficultyCalculator.Commands
                 }
             }
 
+            var attributeMappings = new[]
+            {
+                new { AttribId = 1, AttribName = "Aim" },
+                new { AttribId = 3, AttribName = "Speed" },
+                new { AttribId = 5, AttribName = "OD" },
+                new { AttribId = 7, AttribName = "AR" },
+                new { AttribId = 9, AttribName = "Max combo" },
+                new { AttribId = 11, AttribName = "Strain" },
+                new { AttribId = 13, AttribName = "Hit window 300" },
+                new { AttribId = 15, AttribName = "Score multiplier" },
+                new { AttribId = 17, AttribName = "Aim Length Bonus" },
+                new { AttribId = 19, AttribName = "Speed Length Bonus" },
+            };
+
+            using (var conn = MasterDatabase.GetConnection())
+            {
+                conn.Execute("INSERT INTO `osu_difficulty_attribs` (`attrib_id`,`name`) "
+                             + "VALUES (@AttribId, @AttribName) "
+                             + "ON DUPLICATE KEY UPDATE `name` = VALUES(`name`)", attributeMappings);
+            }
+
             var rulesetsToProcess = getRulesets();
             var beatmaps = new ConcurrentQueue<int>(GetBeatmaps());
 

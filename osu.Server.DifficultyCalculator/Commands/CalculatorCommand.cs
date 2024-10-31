@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using McMaster.Extensions.CommandLineUtils;
+using osu.Game.Beatmaps;
 
 namespace osu.Server.DifficultyCalculator.Commands
 {
@@ -26,7 +27,9 @@ namespace osu.Server.DifficultyCalculator.Commands
         [Option(CommandOptionType.SingleValue, Template = "-c|--concurrency", Description = "Number of threads to use. Default 1.")]
         public int Concurrency { get; set; } = 1;
 
-        [Option(CommandOptionType.NoValue, Template = "--no-notify", Description = "Don't notify of beatmap reprocessing via `bss_process_queue` table. This should only be used when a full score reprocess is to be queued after difficulty calculator re-run.")]
+        [Option(CommandOptionType.NoValue, Template = "--no-notify",
+            Description =
+                "Don't notify of beatmap reprocessing via `bss_process_queue` table. This should only be used when a full score reprocess is to be queued after difficulty calculator re-run.")]
         public bool NoNotifyProcessing { get; set; }
 
         [Option(CommandOptionType.NoValue, Template = "-d|--force-download", Description = "Force download of all beatmaps.")]
@@ -85,6 +88,7 @@ namespace osu.Server.DifficultyCalculator.Commands
                 tasks[i] = Task.Factory.StartNew(() =>
                 {
                     var calc = new ServerDifficultyCalculator(Rulesets, Converts, DryRun);
+                    BeatmapLoadContext loadContext = new PooledBeatmapLoadContext();
 
                     while (beatmaps.TryDequeue(out int beatmapId))
                     {
@@ -93,16 +97,19 @@ namespace osu.Server.DifficultyCalculator.Commands
 
                         try
                         {
-                            var beatmap = BeatmapLoader.GetBeatmap(beatmapId, Verbose, ForceDownload, reporter);
+                            using (loadContext.Begin())
+                            {
+                                var beatmap = BeatmapLoader.GetBeatmap(beatmapId, Verbose, ForceDownload, reporter);
 
-                            // ensure the correct online id is set
-                            beatmap.BeatmapInfo.OnlineID = beatmapId;
+                                // ensure the correct online id is set
+                                beatmap.BeatmapInfo.OnlineID = beatmapId;
 
-                            calc.ProcessBeatmap(beatmap, ProcessingMode);
-                            if (!NoNotifyProcessing)
-                                calc.NotifyBeatmapReprocessed(beatmapId);
+                                calc.ProcessBeatmap(beatmap, ProcessingMode);
+                                if (!NoNotifyProcessing)
+                                    calc.NotifyBeatmapReprocessed(beatmapId);
 
-                            reporter.Verbose($"Difficulty updated for beatmap {beatmapId}.");
+                                reporter.Verbose($"Difficulty updated for beatmap {beatmapId}.");
+                            }
                         }
                         catch (Exception e)
                         {
